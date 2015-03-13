@@ -40,5 +40,12 @@ module.exports = function(config) {
       'karma-junit-reporter',
       'karma-coverage'
     ]
+	    karma: {
+      junit: {
+        singleRun: true,
+        reporters: ['junit', 'coverage']
+      }
+    },
+	    grunt.registerTask('junit', [ 'clean:dist', 'jshint', 'karma:junit' ]);
   });
 };
