@@ -1,2 +1,3 @@
 this is jira git hook that will try to stop git commit if it does not have the jira issue id now what to do
 new issy
+now post commit
