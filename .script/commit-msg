@@ -1,0 +1,106 @@
+#!/usr/bin/python
+import logging
+import sys
+import os
+import re
+import subprocess
+from jira.client import JIRA
+import re
+import warnings
+warnings.filterwarnings('ignore')
+message_file = sys.argv[1]
+print message_file
+#message_file = "DTP-16: hello this is my test"
+def main():  
+    jira_url = get_jira_url()
+    if jira_url == None:
+        return -1
+    
+    jira_username = get_jira_username()
+    if jira_username == None:
+        return -1
+    
+    jira_passwd = get_jira_passwd()
+    if jira_passwd == None:
+        return -1
+    
+    jira_id = find_jira_id_in_message(message_file)    
+    if jira_id == None:
+        return -1
+    
+    get_issues=get_jira_issue_key_in_jira_server(jira_url,jira_username,jira_passwd)
+    
+    compair = compair_issues_key(jira_id, get_issues)
+    if compair == None:
+        return -1
+    
+def find_jira_id_in_message(git_msg):
+    #for get the jira id 
+    commit_file = open(git_msg)
+    line = commit_file.readline()
+    print line         
+    jira_id_pattern = r'[A-Z]*-[0-9]*'
+    jira_issue_id = line.split(":")[0]
+    check_pattern = re.match(jira_id_pattern, jira_issue_id)
+    if check_pattern == None:
+        logging.error("Please use proper jira issue key format")
+        return None
+    return jira_issue_id 
+    
+def compair_issues_key(entered_key, jira_key):
+    print entered_key
+    print jira_key 
+    for key in jira_key:
+        if key.key == entered_key:
+            print "issues key found"
+            return 0
+        else:
+            logging.error("Your entered jira issues key is not in the jira your account")
+            return None
+           
+def get_jira_issue_key_in_jira_server(jira_url, username, passwd):
+    from jira.client import JIRA
+    options ={'server': jira_url,'verify':False}
+    jira = JIRA(options,basic_auth=(username,passwd))
+    issues = jira.search_issues('assignee='+username)
+    print issues
+    return issues
+
+def get_jira_url():
+    jira_url = git_config_get("jira.url")
+    if jira_url == None or jira_url == "":
+        logging.error("Jira URL is not set. Please use 'git config jira.url <actual-jira-url> to set it'")
+        return None
+    return jira_url
+
+def get_jira_passwd():
+    jira_passwd = git_config_get("jira.password")
+    if jira_passwd == None or jira_passwd == "":
+        logging.error("Jira URL is not set. Please use 'git config jira.password <actual-user password> to set it'")
+        return None 
+    return jira_passwd
+
+def get_jira_username():
+    jira_username = git_config_get("jira.username")
+    if jira_username == None or jira_username == "":
+        logging.error("Jira username is not set. Please use 'git config jira.username <jira username> to set it'")
+        return None 
+    return jira_username
+    
+# to get the inforation about the git configuration
+def git_config_get(name):
+    return get_shell_cmd_output("git config '" + name + "'")
+
+# to run the bash command
+def get_shell_cmd_output(cmd):
+    try:
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        return proc.stdout.read().rstrip('\n')
+    except KeyboardInterrupt:
+        logging.info("... interrupted")
+
+    except Exception, e:
+        logging.error("Failed trying to execute '%s'", cmd)
+
+if __name__ == "__main__":
+  exit (main())
